@@ -1,43 +1,45 @@
 
 from fastmcp import FastMCP
 import asyncpg
-import os
-import asyncio
+
+
 
 DATABASE_URL =  "postgresql://postgres:pGnbmLDFDBUdE1Zz@db.ioadgyfuafwoonxtujsd.supabase.co:5432/postgres"
 
+
 mcp = FastMCP("Expense Tracker MCP")
 
-pool = None
+pool: asyncpg.Pool | None = None
 
 
-async def init_db():
+async def get_pool() -> asyncpg.Pool:
+    """
+    Lazy-initialize the database pool.
+    This is SAFE for FastMCP 2.x.
+    """
     global pool
-    if pool:
-        return
 
-    pool = await asyncpg.create_pool(
-        DATABASE_URL,
-        min_size=5,
-        max_size=20
-    )
+    if pool is None:
+        pool = await asyncpg.create_pool(
+            DATABASE_URL,
+            min_size=5,
+            max_size=20
+        )
 
-    async with pool.acquire() as conn:
-        await conn.execute("""
-        CREATE TABLE IF NOT EXISTS expenses (
-            id SERIAL PRIMARY KEY,
-            user_id TEXT NOT NULL,
-            date TEXT NOT NULL,
-            amount NUMERIC NOT NULL,
-            category TEXT NOT NULL,
-            subcategory TEXT DEFAULT '',
-            note TEXT DEFAULT ''
-        );
-        """)
+        async with pool.acquire() as conn:
+            await conn.execute("""
+            CREATE TABLE IF NOT EXISTS expenses (
+                id SERIAL PRIMARY KEY,
+                user_id TEXT NOT NULL,
+                date TEXT NOT NULL,
+                amount NUMERIC NOT NULL,
+                category TEXT NOT NULL,
+                subcategory TEXT DEFAULT '',
+                note TEXT DEFAULT ''
+            );
+            """)
 
-
-# 🔑 Initialize BEFORE starting server
-asyncio.run(init_db())
+    return pool
 
 
 @mcp.tool()
@@ -49,6 +51,8 @@ async def add_expense(
     subcategory: str = "",
     note: str = ""
 ):
+    pool = await get_pool()
+
     async with pool.acquire() as conn:
         row = await conn.fetchrow("""
             INSERT INTO expenses (user_id, date, amount, category, subcategory, note)
@@ -64,6 +68,8 @@ async def add_expense(
 
 @mcp.tool()
 async def list_expenses(user_id: str):
+    pool = await get_pool()
+
     async with pool.acquire() as conn:
         rows = await conn.fetch("""
             SELECT * FROM expenses
