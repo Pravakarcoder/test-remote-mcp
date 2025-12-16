@@ -2,7 +2,10 @@ from fastmcp import FastMCP
 import os
 import sqlite3
 
-DB_PATH = os.path.join(os.path.dirname(__file__), "expenses.db")
+
+DATA_DIR = os.environ.get("MCP_DATA_DIR", "/tmp")
+DB_PATH = os.path.join(DATA_DIR, "expenses.db")
+
 
 mcp = FastMCP("Expense Tracker MCP")
 
