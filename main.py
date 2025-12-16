@@ -4,6 +4,7 @@ import os
 
 DATABASE_URL =  "postgresql://postgres:pGnbmLDFDBUdE1Zz@db.ioadgyfuafwoonxtujsd.supabase.co:5432/postgres"
 
+
 mcp = FastMCP("Expense Tracker MCP")
 
 pool: asyncpg.Pool = None
