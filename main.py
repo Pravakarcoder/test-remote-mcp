@@ -1,21 +1,25 @@
+
 from fastmcp import FastMCP
 import asyncpg
 import os
+import asyncio
 
 DATABASE_URL =  "postgresql://postgres:pGnbmLDFDBUdE1Zz@db.ioadgyfuafwoonxtujsd.supabase.co:5432/postgres"
 
-
 mcp = FastMCP("Expense Tracker MCP")
 
-pool: asyncpg.Pool = None
+pool = None
 
 
 async def init_db():
     global pool
+    if pool:
+        return
+
     pool = await asyncpg.create_pool(
         DATABASE_URL,
         min_size=5,
-        max_size=20  # handles concurrency
+        max_size=20
     )
 
     async with pool.acquire() as conn:
@@ -32,9 +36,8 @@ async def init_db():
         """)
 
 
-@mcp.on_startup()
-async def startup():
-    await init_db()
+# 🔑 Initialize BEFORE starting server
+asyncio.run(init_db())
 
 
 @mcp.tool()
